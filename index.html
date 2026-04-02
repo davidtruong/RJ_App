@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alligator Escape!</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="overlay">
+      <h1>Alligator Escape!</h1>
+      <p>Fly your airplane and escape the alligator!</p>
+      <p class="controls">Arrow Keys / WASD to move<br>Spacebar to drop bananas</p>
+      <button id="startBtn">Start Game</button>
+    </div>
+    <div id="gameOverOverlay" class="hidden">
+      <h1 id="endTitle">Game Over!</h1>
+      <p id="endMessage"></p>
+      <p id="finalScore"></p>
+      <button id="restartBtn">Play Again</button>
+    </div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>

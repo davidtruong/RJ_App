@@ -1,0 +1,94 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #1a1a2e;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#game-container {
+  position: relative;
+}
+
+canvas {
+  display: block;
+  border: 2px solid #333;
+  border-radius: 4px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+#overlay,
+#gameOverOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
+  color: #fff;
+  text-align: center;
+}
+
+#overlay h1,
+#gameOverOverlay h1 {
+  font-size: 48px;
+  margin-bottom: 16px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+#overlay p,
+#gameOverOverlay p {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: #ccc;
+}
+
+.controls {
+  font-size: 14px !important;
+  color: #aaa !important;
+  line-height: 1.6;
+}
+
+button {
+  margin-top: 20px;
+  padding: 14px 40px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff;
+  background: #e94560;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+button:hover {
+  background: #c73650;
+  transform: scale(1.05);
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+.hidden {
+  display: none !important;
+}
+
+#finalScore {
+  font-size: 28px !important;
+  color: #ffd700 !important;
+  font-weight: bold;
+}
