@@ -5,7 +5,10 @@
 }
 
 body {
-  background: #1a1a2e;
+  background: #0a1f0a;
+  background-image:
+    radial-gradient(ellipse at 20% 80%, rgba(34, 80, 34, 0.4) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(20, 60, 20, 0.3) 0%, transparent 60%);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -19,9 +22,11 @@ body {
 
 canvas {
   display: block;
-  border: 2px solid #333;
-  border-radius: 4px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  border: 3px solid #2E7D32;
+  border-radius: 6px;
+  box-shadow:
+    0 0 30px rgba(46, 125, 50, 0.3),
+    0 0 60px rgba(0, 0, 0, 0.5);
 }
 
 #overlay,
@@ -35,48 +40,83 @@ canvas {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 4px;
+  background: rgba(5, 15, 5, 0.85);
+  border-radius: 6px;
   color: #fff;
   text-align: center;
 }
 
+.overlay-content {
+  max-width: 600px;
+  padding: 20px;
+}
+
 #overlay h1,
 #gameOverOverlay h1 {
-  font-size: 48px;
-  margin-bottom: 16px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  font-size: 44px;
+  margin-bottom: 8px;
+  color: #A5D6A7;
+  text-shadow: 0 0 20px rgba(76, 175, 80, 0.5), 2px 2px 4px rgba(0, 0, 0, 0.8);
+  letter-spacing: 2px;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: #81C784;
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+.instructions {
+  display: flex;
+  gap: 40px;
+  justify-content: center;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.instruction-col h3 {
+  color: #FFD54F;
+  font-size: 14px;
+  margin-top: 12px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.instruction-col p {
+  font-size: 13px;
+  color: #bbb;
+  margin-bottom: 2px;
+  line-height: 1.5;
 }
 
 #overlay p,
 #gameOverOverlay p {
-  font-size: 18px;
-  margin-bottom: 12px;
+  font-size: 16px;
+  margin-bottom: 8px;
   color: #ccc;
 }
 
-.controls {
-  font-size: 14px !important;
-  color: #aaa !important;
-  line-height: 1.6;
-}
-
 button {
-  margin-top: 20px;
-  padding: 14px 40px;
-  font-size: 20px;
+  margin-top: 24px;
+  padding: 14px 44px;
+  font-size: 18px;
   font-weight: bold;
   color: #fff;
-  background: #e94560;
-  border: none;
+  background: linear-gradient(180deg, #43A047, #2E7D32);
+  border: 2px solid #66BB6A;
   border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 button:hover {
-  background: #c73650;
+  background: linear-gradient(180deg, #66BB6A, #43A047);
   transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
 }
 
 button:active {
@@ -88,7 +128,15 @@ button:active {
 }
 
 #finalScore {
-  font-size: 28px !important;
-  color: #ffd700 !important;
+  font-size: 32px !important;
+  color: #FFD700 !important;
   font-weight: bold;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+#endStats {
+  font-size: 14px;
+  color: #aaa;
+  margin: 10px 0;
+  line-height: 1.8;
 }
