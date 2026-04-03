@@ -58,10 +58,19 @@ function playWinSound() { playTone(400, 0.12, 'sine'); setTimeout(() => playTone
 // --- State ---
 let state, lastTimestamp, frameCount;
 
+function createAlligator(x) {
+  return {
+    x: x, y: GROUND_Y + 15, w: 80, h: 35,
+    speed: ALLIGATOR_BASE_SPEED, stunTimer: 0,
+    jumpTimer: 2000 + Math.random() * 2000, jumpVy: 0, baseY: GROUND_Y + 15,
+    boostLevel: 0 // how many gators stacked beneath when jumping
+  };
+}
+
 function createState() {
   return {
     airplane: { x: 200, y: 150, w: 60, h: 30 },
-    alligator: { x: 100, y: GROUND_Y + 15, w: 80, h: 35, speed: ALLIGATOR_BASE_SPEED, stunTimer: 0, jumpTimer: 3000, jumpVy: 0, baseY: GROUND_Y + 15 },
+    alligators: [createAlligator(100)],
     hp: MAX_HP,
     gold: 50,
     coconuts: 3,
@@ -166,6 +175,12 @@ function spawnWave() {
       phase: Math.random() * Math.PI * 2
     });
   });
+
+  // Spawn additional alligators at later waves
+  if (wn >= 4 && state.alligators.length < Math.min(2 + Math.floor((wn - 4) / 2), 5)) {
+    const newX = Math.random() < 0.5 ? -60 : W + 60;
+    state.alligators.push(createAlligator(newX));
+  }
 }
 
 // --- Enemy Shooting ---
@@ -338,13 +353,17 @@ function update(dt) {
         hit = true; break;
       }
     }
-    // Hit alligator
-    if (!hit && aabb(b, state.alligator) && state.alligator.stunTimer <= 0) {
-      state.alligator.stunTimer = BANANA_STUN_DURATION;
-      state.score += BANANA_HIT_BONUS;
-      spawnParticles(b.x+8, b.y+10, '#FFD700', 8);
-      playHitSound();
-      hit = true;
+    // Hit alligators
+    if (!hit) {
+      for (const gator of state.alligators) {
+        if (aabb(b, gator) && gator.stunTimer <= 0) {
+          gator.stunTimer = BANANA_STUN_DURATION;
+          state.score += BANANA_HIT_BONUS;
+          spawnParticles(b.x+8, b.y+10, '#FFD700', 8);
+          playHitSound();
+          hit = true; break;
+        }
+      }
     }
     if (hit || b.y > H) state.bananas.splice(i, 1);
   }
@@ -514,23 +533,48 @@ function update(dt) {
     if (pu.life <= 0 || pu.y > H || pu.x < -30) state.powerups.splice(i, 1);
   }
 
-  // --- Alligator ---
-  const gator = state.alligator;
-  if (gator.stunTimer > 0) { gator.stunTimer -= dt; }
-  else {
-    gator.speed = ALLIGATOR_BASE_SPEED + elapsed * ALLIGATOR_ACCEL * 80;
-    const dir = Math.sign(p.x + p.w/2 - (gator.x + gator.w/2));
-    gator.x = Math.max(0, Math.min(W - gator.w, gator.x + dir * gator.speed));
-    gator.jumpTimer -= dt;
-    if (gator.jumpTimer <= 0 && Math.abs(p.x - gator.x) < 150 && gator.y >= gator.baseY - 1) {
-      gator.jumpVy = -7; gator.jumpTimer = 3000 + Math.random() * 2000;
+  // --- Alligators ---
+  // Sort by x so nearby ones can detect each other for stacking
+  state.alligators.sort((a, b) => a.x - b.x);
+
+  for (const gator of state.alligators) {
+    if (gator.stunTimer > 0) { gator.stunTimer -= dt; }
+    else {
+      gator.speed = ALLIGATOR_BASE_SPEED + elapsed * ALLIGATOR_ACCEL * 80;
+      const dir = Math.sign(p.x + p.w/2 - (gator.x + gator.w/2));
+      gator.x = Math.max(0, Math.min(W - gator.w, gator.x + dir * gator.speed));
+      gator.jumpTimer -= dt;
+
+      if (gator.jumpTimer <= 0 && Math.abs(p.x - gator.x) < 180 && gator.y >= gator.baseY - 1) {
+        // Count nearby grounded alligators to stack on
+        let stackCount = 0;
+        for (const other of state.alligators) {
+          if (other !== gator && other.stunTimer <= 0 && other.y >= other.baseY - 1 && Math.abs(other.x - gator.x) < 60) {
+            stackCount++;
+          }
+        }
+        gator.boostLevel = stackCount;
+        // Base jump = -7, each stacked gator multiplies by 1.6x (exponential!)
+        const jumpPower = -7 * Math.pow(1.6, stackCount);
+        gator.jumpVy = Math.max(jumpPower, -25); // cap so it doesn't fly off screen forever
+        gator.jumpTimer = 2500 + Math.random() * 1500;
+
+        // Stacking visual: particles burst from the launch point
+        if (stackCount > 0) {
+          spawnParticles(gator.x + gator.w/2, gator.baseY + gator.h/2, '#FF6D00', 4 + stackCount * 3, 2, 6);
+          playTone(300 + stackCount * 100, 0.15, 'square', 0.06);
+        }
+      }
     }
+
+    // Jump physics
+    if (gator.jumpVy !== 0 || gator.y < gator.baseY) {
+      gator.y += gator.jumpVy; gator.jumpVy += 0.3;
+      if (gator.y >= gator.baseY) { gator.y = gator.baseY; gator.jumpVy = 0; gator.boostLevel = 0; }
+    }
+
+    if (aabb(p, gator)) damagePlayer();
   }
-  if (gator.jumpVy !== 0 || gator.y < gator.baseY) {
-    gator.y += gator.jumpVy; gator.jumpVy += 0.3;
-    if (gator.y >= gator.baseY) { gator.y = gator.baseY; gator.jumpVy = 0; }
-  }
-  if (aabb(p, gator)) damagePlayer();
 
   // --- Particles ---
   for (let i = state.particles.length - 1; i >= 0; i--) {
@@ -722,20 +766,32 @@ function drawAirplane() {
   ctx.restore();
 }
 
-function drawAlligator() {
-  const g = state.alligator;
+function drawAlligator(g) {
   const stunned = g.stunTimer > 0;
+  const boosted = g.boostLevel > 0 && g.y < g.baseY;
   ctx.save();
   ctx.translate(g.x, g.y);
 
   const facingRight = (state.airplane.x + state.airplane.w/2) > (g.x + g.w/2);
   if (!facingRight) { ctx.translate(g.w, 0); ctx.scale(-1, 1); }
 
-  // Body
-  ctx.fillStyle = stunned && Math.floor(frameCount/4)%2===0 ? '#81C784' : '#2E7D32';
+  // Boost trail when launched by stack
+  if (boosted) {
+    ctx.fillStyle = `rgba(255, 109, 0, ${0.2 + g.boostLevel * 0.1})`;
+    ctx.beginPath();
+    ctx.moveTo(g.w/2 - 10, g.h + 5);
+    ctx.lineTo(g.w/2, g.h + 15 + g.boostLevel * 8);
+    ctx.lineTo(g.w/2 + 10, g.h + 5);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Body - tinted red/orange when boost-launched
+  const bodyColor = boosted ? '#8B4513' : (stunned && Math.floor(frameCount/4)%2===0 ? '#81C784' : '#2E7D32');
+  ctx.fillStyle = bodyColor;
   ctx.beginPath(); ctx.ellipse(g.w/2, g.h/2, g.w/2, g.h/2, 0, 0, Math.PI*2); ctx.fill();
   // Scales
-  ctx.fillStyle = 'rgba(27,94,32,0.5)';
+  ctx.fillStyle = boosted ? 'rgba(139,69,19,0.5)' : 'rgba(27,94,32,0.5)';
   for (let s = 0; s < 5; s++) { ctx.fillRect(10 + s*12, g.h/2-4, 8, 8); }
 
   // Snout
@@ -745,9 +801,9 @@ function drawAlligator() {
   ctx.fillStyle = '#fff';
   for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.moveTo(g.w-2+i*6, g.h/2+7); ctx.lineTo(g.w+1+i*6, g.h/2+13); ctx.lineTo(g.w+4+i*6, g.h/2+7); ctx.closePath(); ctx.fill(); }
 
-  // Eye
+  // Eye - glowing when boosted
   ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(g.w/2+14, g.h/2-12, 7, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = stunned ? '#666' : '#D32F2F';
+  ctx.fillStyle = boosted ? '#FF6D00' : (stunned ? '#666' : '#D32F2F');
   ctx.beginPath(); ctx.arc(g.w/2+16, g.h/2-12, 3.5, 0, Math.PI*2); ctx.fill();
 
   // Legs
@@ -760,6 +816,13 @@ function drawAlligator() {
     const w = Math.sin(frameCount*0.2)*6;
     ctx.fillText('\u2605', g.w/2-18+w, -8); ctx.fillText('\u2605', g.w/2+12-w, -4); ctx.fillText('\u2605', g.w/2-4, -16+w);
   }
+
+  // Boost level indicator
+  if (boosted) {
+    ctx.fillStyle = '#FF6D00'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('x' + (g.boostLevel + 1), g.w/2, -12);
+  }
+
   ctx.restore();
 }
 
@@ -1029,6 +1092,12 @@ function drawHUD() {
     ctx.fillText('\uD83D\uDEE1\uFE0F SHIELD', 10, py + 18);
   }
 
+  // Alligator count warning
+  if (state.alligators.length > 1) {
+    ctx.fillStyle = '#FF6D00'; ctx.font = 'bold 13px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('\uD83D\uDC0A x' + state.alligators.length, W/2, 44);
+  }
+
   // Build costs hint (bottom)
   ctx.globalAlpha = 0.5; ctx.font = '11px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#ccc';
   ctx.fillText('[1] Fighter 100g  [2] Bomber 200g  [3] Healer 150g', W/2, H - 8);
@@ -1053,8 +1122,8 @@ function render() {
   for (const c of state.coconutBombs) drawCoconut(c);
   // Powerups
   for (const pu of state.powerups) drawPowerup(pu);
-  // Alligator
-  drawAlligator();
+  // Alligators
+  for (const gator of state.alligators) drawAlligator(gator);
   // Enemies
   for (const e of state.enemies) drawEnemy(e);
   // Enemy bullets
@@ -1096,7 +1165,7 @@ function showEndScreen() {
 
   title.textContent = state.won ? 'Mission Complete!' : 'Mission Failed!';
   msg.textContent = state.won ? 'You escaped the jungle!' : 'The jungle claimed another pilot...';
-  stats.innerHTML = `Wave Reached: ${s.waveReached}<br>Enemies Defeated: ${s.enemiesKilled}<br>Allies Built: ${s.alliesBuilt}<br>Gold Earned: ${s.goldEarned}<br>Powerups Collected: ${s.powerupsCollected}`;
+  stats.innerHTML = `Wave Reached: ${s.waveReached}<br>Enemies Defeated: ${s.enemiesKilled}<br>Alligators Faced: ${state.alligators.length}<br>Allies Built: ${s.alliesBuilt}<br>Gold Earned: ${s.goldEarned}<br>Powerups Collected: ${s.powerupsCollected}`;
   score.textContent = `Score: ${Math.floor(state.score)}`;
 
   setTimeout(() => overlay.classList.remove('hidden'), state.won ? 0 : 450);
